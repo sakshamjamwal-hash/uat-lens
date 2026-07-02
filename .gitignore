@@ -1,0 +1,12 @@
+node_modules/
+app/node_modules/
+app/dist/
+.vercel/
+.env
+.env.local
+.DS_Store
+*.local
+
+# Per-run report output (each user generates their own; a sample lives in samples/)
+app/public/uat-data.json
+app/public/uat/

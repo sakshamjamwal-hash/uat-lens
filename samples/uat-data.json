@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "title": "Sample Checkout",
+    "subtitle": "Design QA · Figma ↔ Build",
+    "figmaKey": "SAMPLEKEY123",
+    "generatedAt": "2026-07-02",
+    "stats": { "total": 2, "critical": 0, "major": 1, "minor": 1, "needsVerify": 0 }
+  },
+  "tabs": [
+    {
+      "id": "checkout",
+      "label": "Checkout",
+      "kind": "pair",
+      "sectionHeader": { "idx": "01", "title": "Checkout screen" },
+      "compare": {
+        "desc": "Primary CTA and card styling on the checkout screen.",
+        "tag": "Screen",
+        "figma": {
+          "node": "Checkout · Figma",
+          "url": "figma.com/file/SAMPLEKEY123",
+          "img": "/uat/sample-figma.png",
+          "alt": "Figma — Checkout screen"
+        },
+        "live": {
+          "node": "Checkout · Build",
+          "url": "localhost:3000/checkout",
+          "img": "/uat/sample-live.png",
+          "alt": "Build — Checkout screen"
+        }
+      },
+      "block": {
+        "id": "checkout-gaps",
+        "header": "Gaps — Checkout",
+        "count": "2 gaps",
+        "columns": ["#", "Element", "Build", "Figma", "Priority"],
+        "rows": [
+          {
+            "id": "g1",
+            "cells": ["", "Primary button · fill", "#2563EB (blue)", "#16A34A (green)", "H"],
+            "fix": "Update the primary button background token to the green brand colour (#16A34A).",
+            "ann": {
+              "on": "live",
+              "x": 24,
+              "y": 78,
+              "w": 52,
+              "h": 8,
+              "element": "Primary button",
+              "build": "Fill is blue (#2563EB), Figma expects green (#16A34A)"
+            }
+          },
+          {
+            "id": "g2",
+            "cells": ["", "Card · corner radius", "8px", "16px", "M"],
+            "fix": "Increase the card corner radius from 8px to 16px to match the design token.",
+            "ann": {
+              "on": "figma",
+              "x": 10,
+              "y": 18,
+              "w": 80,
+              "h": 40,
+              "element": "Card",
+              "build": "Corner radius 8px, Figma expects 16px"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
