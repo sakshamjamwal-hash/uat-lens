@@ -51,7 +51,7 @@ if (hasFfmpeg()) {
 import AVFoundation; import AppKit; import Foundation
 let a = CommandLine.arguments
 let src = a[1]; let interval = Double(a[2])!; let outDir = a[3]
-let s0 = Double(a[4]); let e0 = Double(a[5])
+let s0 = Double(a[4]) ?? -1; let e0 = Double(a[5]) ?? -1
 let asset = AVURLAsset(url: URL(fileURLWithPath: src))
 let sem = DispatchSemaphore(value: 0); var dur = 0.0
 asset.loadValuesAsynchronously(forKeys: ["duration"]) { dur = CMTimeGetSeconds(asset.duration); sem.signal() }
