@@ -190,10 +190,19 @@ main {
 .topstrip .side { display: flex; align-items: center; gap: 8px; }
 
 /* ── Hero ── */
-.hero {
-  padding: 72px 48px 56px;
-  max-width: 960px;
+.hero-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 56px;
+  padding-right: 48px;
 }
+.hero {
+  padding: 72px 48px 88px;
+  max-width: 960px;
+  min-width: 0;
+}
+.hero-row .hero { padding-right: 0; flex: 1 1 auto; }
 .eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -204,11 +213,13 @@ main {
 }
 .hero-title {
   font-family: var(--font-title);
-  font-size: clamp(60px, 7vw, 106px);
+  /* Fluid: scales with the flex column so the title holds ~2 lines instead of wrapping to 3 */
+  font-size: clamp(34px, 4vw, 64px);
   font-weight: 400;
-  line-height: 0.93;
+  line-height: 1.04;
   color: var(--fg-strong);
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  text-wrap: balance;
 }
 .hero-title .acc { color: var(--accent); }
 .hero-tagline {
@@ -221,87 +232,101 @@ main {
 .hero-tagline em { color: var(--fg); font-style: italic; }
 
 /* ── Stats ── */
+/* Stat list — hairline rows beside the hero, top-aligned with the eyebrow */
 .stats {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  padding: 0 48px 48px;
-  margin-bottom: 8px;
+  padding: 0 0 24px;
+  margin: 0;
 }
+.hero-row .stats {
+  flex: 0 0 320px;
+  /* hero's top padding is 72px — the first divider sits exactly on that line */
+  padding: 72px 0 0;
+}
+@media (max-width: 1100px) {
+  .hero-row { flex-direction: column; align-items: stretch; gap: 0; padding-right: 0; }
+  .hero-row .hero { padding-right: 48px; padding-bottom: 24px; }
+  .hero-row .stats { flex: initial; padding: 0 48px 24px; }
+}
+.stats { display: flex; flex-direction: column; gap: 10px; }
 .stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 24px 28px 26px;
+  border-radius: 12px;
+  padding: 12px 18px;
 }
+.stat-info { min-width: 0; }
 .stat-lbl {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 3px;
 }
 .stat-lbl .mono { color: var(--fg-dim); font-size: 10px; }
 .stat-num {
   font-family: var(--font-title);
-  font-size: 64px;
+  font-size: 32px;
   font-weight: 500;
   line-height: 1;
-  margin-bottom: 12px;
-  color: var(--fg-muted);
+  color: var(--fg-strong);
+  flex: 0 0 auto;
 }
 .stat-num.c { color: var(--danger); }
 .stat-num.h { color: var(--accent); }
 .stat-num.m { color: var(--info); }
 .stat-num.l { color: var(--fg-dim); }
-.stat-cap { font-size: 12px; color: var(--fg-dim); }
+.stat-cap { font-size: 11px; color: var(--fg-dim); }
 
 /* ── Tab navigation ── */
+.tab-sentinel { height: 1px; margin-top: -1px; }
 .tab-nav {
   display: flex;
   overflow-x: auto;
-  gap: 0;
-  border-bottom: 1px solid var(--border);
-  background: rgba(14, 14, 14, 0.95);
-  backdrop-filter: blur(12px);
-  padding: 0 48px;
+  gap: 8px;
+  padding: 10px 48px;
   position: sticky;
   top: 40px;
   z-index: 50;
   scrollbar-width: none;
+  border-bottom: 1px solid transparent;
+  transition: background 0.25s, border-color 0.25s, backdrop-filter 0.25s;
+}
+/* Backdrop only while pinned — transparent in normal flow */
+.tab-nav.is-stuck {
+  background: rgba(14, 14, 14, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom-color: var(--border);
 }
 .tab-nav::-webkit-scrollbar { display: none; }
 .tab-btn {
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--fg-dim);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 13px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 16px;
   cursor: pointer;
   white-space: nowrap;
-  margin-bottom: -1px;
-  transition: color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
   display: flex;
   align-items: center;
   gap: 6px;
-  position: relative;
 }
-.tab-btn:hover { color: var(--fg-muted); }
-.tab-btn.active { color: var(--accent); }
-.tab-underline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  background: var(--accent);
+.tab-btn:hover { color: var(--fg-muted); border-color: var(--border-strong); }
+.tab-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 /* ── Tab pane ── */
-.tab-pane { padding-top: 16px; }
+.tab-pane { padding-top: 44px; }
 
 /* ── Section header ── */
 .sh {
@@ -318,7 +343,7 @@ main {
 }
 .sh h2 {
   font-family: var(--font-title);
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 400;
   color: var(--fg-strong);
 }
@@ -847,6 +872,86 @@ tr:hover .del-row:hover { opacity: 1; color: var(--danger); }
 }
 .screen-full .ann-img { cursor: zoom-in; }
 
+/* ── Multi-state capture carousel (compare panes) ── */
+.screen-full { position: relative; }
+/* Clip only the x-axis so slides don't glide over the neighbouring pane,
+   while hover cards (ann-tip) can still overflow vertically. */
+.state-viewport {
+  position: relative;
+  width: 100%;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+.state-slide { display: flex; justify-content: center; width: 100%; }
+.state-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: rgba(10, 10, 10, 0.72);
+  color: var(--fg);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 2px;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+}
+.state-nav:hover:not(:disabled) { border-color: var(--accent); background: rgba(10, 10, 10, 0.9); }
+.state-nav:disabled { opacity: 0.25; cursor: default; }
+.state-nav--prev { left: 10px; }
+.state-nav--next { right: 10px; }
+/* Gap-pin toggle — top right of the screenshot window */
+.gap-counter {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  background: rgba(10, 10, 10, 0.78);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  z-index: 6;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.gap-counter:hover { border-color: var(--accent); color: var(--fg); }
+.gap-counter--on { border-color: var(--accent); color: var(--fg); background: rgba(10, 10, 10, 0.92); }
+.gap-counter-num {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 11px;
+}
+.state-ind {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg);
+  background: rgba(10, 10, 10, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  z-index: 6;
+  white-space: nowrap;
+}
+
 /* ── Precise annotation overlay (AnnotationLayer) ── */
 .ann-box {
   position: absolute;
@@ -874,7 +979,7 @@ tr:hover .del-row:hover { opacity: 1; color: var(--danger); }
   letter-spacing: 0.04em;
   min-width: 16px;
   padding: 2px 5px;
-  border-radius: 4px;
+  border-radius: 999px;
   line-height: 1.4;
   text-align: center;
   color: #fff;

@@ -1,0 +1,9 @@
+# Deploy uploads — unlike .gitignore, the report data (public/uat-data.json,
+# public/uat/) IS included so the shared dashboard renders the current run.
+node_modules
+dist
+.env
+.env.*
+*.local
+.DS_Store
+uat-edits.local.json

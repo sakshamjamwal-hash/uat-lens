@@ -73,6 +73,15 @@ Rules for the data:
 - Add `ann` only for gaps with a locatable element; `x/y/w/h` are % of the full (uncropped) screenshot; include `element` + `build` so the hover card reads correctly. `on` is `"live"` or `"figma"`.
 - For `Verify` gaps: set the priority cell to `""` and add `"specialPriority": "Verify"`.
 - One tab per screen pair.
+- **Multiple captured states of the same screen** (e.g. a carousel at different positions): do NOT create extra tabs — give that side a `states` array and scope pins with `ann.state`:
+  ```json
+  "live": { "node": "…", "url": "…", "img": "/uat/live-1.png", "alt": "…",
+            "states": [
+              { "img": "/uat/live-1.png", "alt": "…", "node": "IMG_1", "label": "State A" },
+              { "img": "/uat/live-2.png", "alt": "…", "node": "IMG_2", "label": "State B" } ] }
+  ```
+  The viewer shows chevrons to slide between states; `"ann": { "state": 2, ... }` pins a gap to the 2nd capture (default 1). If BOTH sides have `states`, they must be 1:1 mapped by index — one shared index slides them in sync. Keep the top-level `img/alt/node` as a fallback.
+- **Publishing to the shared app (uat-lens.vercel.app):** after writing the json locally, `cd app && vercel deploy --prod --yes`, then seed the backend: `POST https://uat-lens.vercel.app/api/data` with `{ "password": <admin pw>, "data": <the full json> }` — the deployed app reads the canonical document from `/api/data`, not the static file. CHECK `GET /api/data` for user edits before replacing it.
 
 ## PHASE 5 — Show it
 ```bash

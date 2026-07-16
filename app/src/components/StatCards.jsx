@@ -1,44 +1,29 @@
 import Reveal from './Reveal.jsx'
-import { EASE } from '../motion.js'
 
-// Neutral fallback — shown only if meta is absent but tabs exist. Zeroed out.
-const DEFAULT_STATS = [
-  { label: 'TOTAL', pill: 'ALL', num: '0', cls: '', cap: 'gaps found · Figma vs build' },
-  { label: 'CRITICAL', pill: null, num: '0', cls: 'c', cap: 'blocker · ship-stopping' },
-  { label: 'MAJOR', pill: null, num: '0', cls: 'h', cap: 'user-facing regression' },
-  { label: 'MINOR', pill: null, num: '0', cls: 'm', cap: 'polish / verify' },
-]
-
-// Imported mode — Total / Critical / Major / Minor.
-// critical=danger ('c'), major=accent/high ('h'), minor=info ('m'), total neutral ('').
-function statsFromMeta(meta) {
-  const s = meta.stats || {}
-  return [
-    { label: 'TOTAL', pill: 'ALL', num: String(s.total ?? 0), cls: '', cap: 'gaps found · Figma vs build' },
-    { label: 'CRITICAL', pill: null, num: String(s.critical ?? 0), cls: 'c', cap: 'blocker · ship-stopping' },
-    { label: 'MAJOR', pill: null, num: String(s.major ?? 0), cls: 'h', cap: 'user-facing regression' },
-    { label: 'MINOR', pill: null, num: String(s.minor ?? 0), cls: 'm', cap: 'polish / verify' },
+// Rendered as a vertical list beside the hero: label + caption left, count
+// right, hairline dividers. Tallied live in App so the numbers always add up:
+// total = critical + major + minor + verify.
+export default function StatCards({ stats }) {
+  const s = stats || { total: 0, critical: 0, major: 0, minor: 0, verify: 0 }
+  const STATS = [
+    { label: 'TOTAL', pill: 'ALL', num: s.total, cls: '', cap: 'gaps found · Figma vs build' },
+    { label: 'CRITICAL', pill: null, num: s.critical, cls: 'c', cap: 'blocker · ship-stopping' },
+    { label: 'MAJOR', pill: null, num: s.major, cls: 'h', cap: 'user-facing regression' },
+    { label: 'MINOR', pill: null, num: s.minor, cls: 'm', cap: 'polish' },
+    { label: 'VERIFY', pill: null, num: s.verify, cls: 'l', cap: 'needs human / DOM check' },
   ]
-}
-
-export default function StatCards({ meta }) {
-  const STATS = meta ? statsFromMeta(meta) : DEFAULT_STATS
   return (
     <section className="stats">
-      {STATS.map((s, i) => (
-        <Reveal
-          key={s.label}
-          className="stat"
-          y={16}
-          delay={0.15 + i * 0.07}
-          whileHover={{ y: -3, borderColor: 'var(--border-strong)', transition: { duration: 0.2, ease: EASE } }}
-        >
-          <div className="stat-lbl">
-            <span className="mono">{s.label}</span>
-            {s.pill && <span className="pill">{s.pill}</span>}
+      {STATS.map((st, i) => (
+        <Reveal key={st.label} className="stat" y={12} delay={0.15 + i * 0.06}>
+          <div className="stat-info">
+            <div className="stat-lbl">
+              <span className="mono">{st.label}</span>
+              {st.pill && <span className="pill">{st.pill}</span>}
+            </div>
+            <div className="stat-cap">{st.cap}</div>
           </div>
-          <div className={`stat-num ${s.cls}`}>{s.num}</div>
-          <div className="stat-cap">{s.cap}</div>
+          <div className={`stat-num ${st.cls}`}>{String(st.num)}</div>
         </Reveal>
       ))}
     </section>

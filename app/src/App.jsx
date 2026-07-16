@@ -34,6 +34,25 @@ function saveLocal(state) {
   try { localStorage.setItem(LOCAL_KEY, JSON.stringify(state)) } catch {}
 }
 
+// Tally severities straight from the rows so the stat tiles always match the
+// tables — including admin adds/deletes. Severity is the last cell; anything
+// that isn't C/H/M/L counts as Verify.
+export function computeStats(tabs) {
+  const s = { total: 0, critical: 0, major: 0, minor: 0, verify: 0 }
+  for (const tab of tabs || []) {
+    if (!tab.block || !Array.isArray(tab.block.rows)) continue
+    for (const row of tab.block.rows) {
+      s.total++
+      const sev = String((row.cells && row.cells[row.cells.length - 1]) || '').trim().toUpperCase()
+      if (sev === 'C') s.critical++
+      else if (sev === 'H') s.major++
+      else if (sev === 'M' || sev === 'L') s.minor++
+      else s.verify++
+    }
+  }
+  return s
+}
+
 // Apply the admin edit overlay to a deep-cloned { meta, tabs } so it can be
 // downloaded and committed as the new public/uat-data.json.
 function buildMergedData(meta, tabs, edits, deletedRows, addedRows) {
@@ -64,6 +83,8 @@ function buildMergedData(meta, tabs, edits, deletedRows, addedRows) {
       }
     }
   }
+  // Re-tally so a downloaded report never ships stats that disagree with its rows.
+  clone.meta.stats = computeStats(clone.tabs)
   return clone
 }
 
@@ -111,43 +132,32 @@ export default function App() {
   const [tabs, setTabs] = useState(TABS)
   const [meta, setMeta] = useState(DEFAULT_META)
 
+  // ── Load the canonical document (backend first, static file fallback) ──
+  // /api/data is the ONE report everyone shares; Save overwrites it in place.
+  // Unsaved local drafts (localStorage overlay) survive reloads on top of it.
   useEffect(() => {
     let cancelled = false
-    fetch('/uat-data.json')
+    const apply = (data) => {
+      if (cancelled || !data || !Array.isArray(data.tabs) || data.tabs.length === 0) return false
+      setTabs(data.tabs)
+      setMeta({ ...data.meta, tabCount: data.tabs.length })
+      // If the persisted active tab isn't in the imported set, jump to the first.
+      setActiveTab(prev => (data.tabs.some(t => t.id === prev) ? prev : data.tabs[0].id))
+      return true
+    }
+    fetch('/api/data')
       .then(r => (r.ok ? r.json() : null))
+      .catch(() => null)
       .then(data => {
-        if (cancelled || !data || !Array.isArray(data.tabs) || data.tabs.length === 0) return
-        setTabs(data.tabs)
-        setMeta({ ...data.meta, tabCount: data.tabs.length })
-        // If the persisted active tab isn't in the imported set, jump to the first.
-        setActiveTab(prev => (data.tabs.some(t => t.id === prev) ? prev : data.tabs[0].id))
+        if (cancelled) return
+        if (apply(data)) return
+        // No backend (plain static hosting) — read the baked-in report
+        return fetch('/uat-data.json')
+          .then(r => (r.ok ? r.json() : null))
+          .then(apply)
+          .catch(() => { /* absent/offline: stay in empty state */ })
       })
-      .catch(() => { /* absent/offline: stay in empty state */ })
     return () => { cancelled = true }
-  }, [])
-
-  // ── Load the shared store on mount (source of truth for everyone) ──
-  useEffect(() => {
-    let cancelled = false
-    fetch('/api/edits')
-      .then(r => (r.ok ? r.json() : null))
-      .then(data => {
-        if (cancelled || !data) return
-        // Don't clobber unsaved local admin edits mid-session
-        if (dirty) return
-        const next = {
-          edits: data.edits || {},
-          deletedRows: data.deletedRows || {},
-          addedRows: data.addedRows || {},
-        }
-        setEdits(next.edits)
-        setDeletedRows(next.deletedRows)
-        setAddedRows(next.addedRows)
-        saveLocal(next)
-      })
-      .catch(() => { /* local dev / offline: keep localStorage copy */ })
-    return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Keep a local draft cache in sync
@@ -272,14 +282,15 @@ export default function App() {
     }
     setSaveStatus('saving')
     setSaveError('')
-    // Best-effort POST to the optional shared store. If a backend is present
-    // and rejects the password, surface that error and stop.
+    // Bake the draft overlay into the full document and overwrite the ONE
+    // canonical json in place. No overlay store, no download.
+    const merged = buildMergedData(meta, tabs, edits, deletedRows, addedRows)
     let postedToBackend = false
     try {
-      const res = await fetch('/api/edits', {
+      const res = await fetch('/api/data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, edits, deletedRows, addedRows }),
+        body: JSON.stringify({ password, data: merged }),
       })
       if (res.status === 401) {
         setSaveStatus('error')
@@ -288,25 +299,32 @@ export default function App() {
       }
       postedToBackend = res.ok
     } catch {
-      // no backend (local-first) — fall through to download
+      // no backend — fall through to download as a last resort
     }
-    // Local-first: download the merged report so the user can replace
-    // public/uat-data.json and commit/share it.
+    if (postedToBackend) {
+      // The canonical doc now IS the merged report — adopt it as the new base
+      // and clear the draft overlay (it's baked in).
+      setTabs(merged.tabs)
+      setMeta({ ...merged.meta, tabCount: merged.tabs.length })
+      setEdits({})
+      setDeletedRows({})
+      setAddedRows({})
+      saveLocal({ edits: {}, deletedRows: {}, addedRows: {} })
+      setDirty(false)
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2500)
+      return
+    }
+    // No backend at all (plain static hosting): download the merged report so
+    // the user can replace public/uat-data.json manually.
     try {
-      triggerDownload(buildMergedData(meta, tabs, edits, deletedRows, addedRows))
+      triggerDownload(merged)
       setDirty(false)
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus('idle'), 2500)
     } catch (e) {
-      // If the download itself fails but the backend accepted, still count as saved.
-      if (postedToBackend) {
-        setDirty(false)
-        setSaveStatus('saved')
-        setTimeout(() => setSaveStatus('idle'), 2500)
-      } else {
-        setSaveStatus('error')
-        setSaveError(e.message || 'Save failed')
-      }
+      setSaveStatus('error')
+      setSaveError(e.message || 'Save failed')
     }
   }
 
@@ -314,26 +332,13 @@ export default function App() {
 
   function handleCancel() {
     if (!dirty || confirm('Discard unsaved changes?')) {
-      // Re-pull the shared store
-      fetch('/api/edits')
-        .then(r => (r.ok ? r.json() : null))
-        .then(data => {
-          const next = {
-            edits: (data && data.edits) || {},
-            deletedRows: (data && data.deletedRows) || {},
-            addedRows: (data && data.addedRows) || {},
-          }
-          setEdits(next.edits)
-          setDeletedRows(next.deletedRows)
-          setAddedRows(next.addedRows)
-          saveLocal(next)
-          setDirty(false)
-          setSaveStatus('idle')
-        })
-        .catch(() => {
-          setDirty(false)
-          setSaveStatus('idle')
-        })
+      // Drop the local draft — the canonical document is untouched by drafts
+      setEdits({})
+      setDeletedRows({})
+      setAddedRows({})
+      saveLocal({ edits: {}, deletedRows: {}, addedRows: {} })
+      setDirty(false)
+      setSaveStatus('idle')
     }
   }
 
@@ -346,6 +351,10 @@ export default function App() {
   }
 
   const editState = edits
+
+  // Live stats — tallied from the merged rows (base data + admin overlay) so
+  // the tiles and footer always agree with what the tables actually list.
+  const liveStats = computeStats(buildMergedData(meta, tabs, edits, deletedRows, addedRows).tabs)
 
   const tabData = tabs.find(t => t.id === activeTab) || tabs[0]
 
@@ -391,8 +400,10 @@ export default function App() {
           </>
         ) : (
           <>
-            <Hero meta={meta} />
-            <StatCards meta={meta} />
+            <div className="hero-row">
+              <Hero meta={meta} stats={liveStats} />
+              <StatCards stats={liveStats} />
+            </div>
             <TabNav activeTab={activeTab} onTabChange={handleTabChange} tabs={tabs} />
             <Reveal key={activeTab} className="tab-pane" y={8} duration={0.32}>
               {renderTab()}
@@ -404,7 +415,7 @@ export default function App() {
                 </div>
                 <div className="fr">
                   <span className="mono">
-                    {tabs.length} PAIRS · {meta.stats?.total ?? 0} GAPS · {meta.stats?.critical ?? 0}C · {meta.stats?.major ?? 0}H · {meta.stats?.minor ?? 0}M · {meta.stats?.needsVerify ?? 0} VERIFY
+                    {tabs.length} PAIRS · {liveStats.total} GAPS · {liveStats.critical}C · {liveStats.major}H · {liveStats.minor}M · {liveStats.verify} VERIFY
                   </span>
                 </div>
               </footer>

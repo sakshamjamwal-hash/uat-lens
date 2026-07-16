@@ -1,9 +1,9 @@
 import Reveal from './Reveal.jsx'
 
-export default function Hero({ meta }) {
+export default function Hero({ meta, stats }) {
   if (meta) {
-    const stats = meta.stats || {}
-    const total = stats.total != null ? stats.total : ''
+    const s = stats || meta.stats || {}
+    const total = s.total != null ? s.total : ''
     const sections = meta.tabCount != null ? meta.tabCount : ''
     return (
       <section className="hero">
@@ -12,7 +12,7 @@ export default function Hero({ meta }) {
         </Reveal>
         <Reveal as="h1" className="hero-title" y={18} delay={0.13}>
           {meta.title}<br />
-          <span className="acc">investigation</span>
+          <span className="acc">{meta.titleAccent || 'investigation'}</span>
         </Reveal>
         <Reveal className="badge" y={10} delay={0.22}>
           <span className="dot" />
