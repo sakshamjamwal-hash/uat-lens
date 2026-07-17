@@ -87,6 +87,6 @@ Rules for the data:
 ```bash
 cd app && npm install --silent && npm run dev
 ```
-Then tell the user the local URL (http://localhost:5173) and summarise the gaps found (counts by severity). In the dashboard they can hover the numbered pins for the gap + fix + severity, open a screenshot fullscreen, and enter **Admin** (top-right) to edit/add/delete gaps.
+Then tell the user the local URL (http://localhost:5173) and summarise the gaps found (counts by severity). Dashboard behaviour to relay when useful: pins are hidden by default — the **gap counter** (top-right of each screenshot window) toggles them, and clicking a gap's number in the table jumps to that pin alone (auto-sliding to its capture state on multi-state tabs). **Admin** (top-right) edits/adds/deletes gaps; **Save changes** rewrites the canonical report in place via `/api/data` (locally that's `app/public/uat-data.json` itself — no downloads, no overlay).
 
 Keep the run tight: a handful of well-verified gaps beats many eyeballed ones. State any coverage limits (states/screens not captured) explicitly.
