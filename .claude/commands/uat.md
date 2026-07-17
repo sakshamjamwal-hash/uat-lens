@@ -39,6 +39,14 @@ If either of the two links is missing, ask for it and stop.
 ## PHASE 3 — Pair + audit
 For each Figma screen, find its build counterpart and produce gap rows. Look at both images carefully (colour, size, radius, spacing, borders, shadows, icons, presence/absence, state, component type). Apply the rules above. Draft a concrete **Fix** for each (the dev's next step). For gaps that map to a visible element, record an annotation box as **percentages of the build screenshot** (or the Figma one if the element only exists there).
 
+### Measure, don't eyeball (every check here exists because it was once missed and the user caught it)
+Side-by-side viewing reliably catches colour and presence/absence gaps but silently passes over size and spacing drift. Run these checks **quantitatively** per screen pair — crop regions with `sips` for close inspection; measure pixel positions with a PIL/numpy scan (threshold bright text rows for bounding boxes, detect background-change rows for container edges). Normalise to pt: Figma px at 375-wide = pt; build px ÷ (screenshot_width / device_pt_width).
+1. **Specs come from Figma metadata, not the rendered image.** `get_metadata` frame `x/y/width/height` gives exact element sizes (avatars, icons), container gaps, and text-box line-heights. An eyeballed "36px avatar" was really a 32px spec.
+2. **Inter-block vertical spacing**, not just padding inside components: header→content, section→section, row rhythm. Measure like-for-like on both sides (e.g. text-glyph bottom → card top edge) and compare against the metadata container gap.
+3. **Text sizes via same-screen ratio check.** Measure bounding heights of the suspect text AND 2+ other text elements on the same build screenshot (a body line, a sibling header), each vs its Figma counterpart. Others ≈1.0 while the suspect isn't → real font-size gap. NEVER dismiss a text-size delta as "maybe device font scaling" without this 30-second disproof — device scaling inflates all text, not one element.
+4. **Left/right insets of each content block** vs the Figma grid (frame x values), and internal alignment — title/chips/dividers of one section must share one inset.
+5. **Shapes**: corner radius, circle-vs-square on avatars/thumbnails/chips — and compare the same element across build screens too.
+
 ## PHASE 4 — Write the dashboard data
 Write `app/public/uat-data.json` in EXACTLY this schema (the viewer reads it verbatim):
 ```json
