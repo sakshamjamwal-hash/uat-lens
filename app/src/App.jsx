@@ -53,8 +53,8 @@ export function computeStats(tabs) {
   return s
 }
 
-// Apply the admin edit overlay to a deep-cloned { meta, tabs } so it can be
-// downloaded and committed as the new public/uat-data.json.
+// Apply the admin edit overlay to a deep-cloned { meta, tabs } — this merged
+// document is what Save posts to /api/data as the new canonical report.
 function buildMergedData(meta, tabs, edits, deletedRows, addedRows) {
   const clone = JSON.parse(JSON.stringify({ meta: meta || {}, tabs: tabs || [] }))
   for (const tab of clone.tabs) {
@@ -83,21 +83,9 @@ function buildMergedData(meta, tabs, edits, deletedRows, addedRows) {
       }
     }
   }
-  // Re-tally so a downloaded report never ships stats that disagree with its rows.
+  // Re-tally so a saved report never ships stats that disagree with its rows.
   clone.meta.stats = computeStats(clone.tabs)
   return clone
-}
-
-function triggerDownload(dataObj) {
-  const blob = new Blob([JSON.stringify(dataObj, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'uat-data.json'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 export default function App() {
@@ -299,7 +287,7 @@ export default function App() {
       }
       postedToBackend = res.ok
     } catch {
-      // no backend — fall through to download as a last resort
+      // network failure — handled below, draft stays local
     }
     if (postedToBackend) {
       // The canonical doc now IS the merged report — adopt it as the new base
@@ -315,17 +303,9 @@ export default function App() {
       setTimeout(() => setSaveStatus('idle'), 2500)
       return
     }
-    // No backend at all (plain static hosting): download the merged report so
-    // the user can replace public/uat-data.json manually.
-    try {
-      triggerDownload(merged)
-      setDirty(false)
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus('idle'), 2500)
-    } catch (e) {
-      setSaveStatus('error')
-      setSaveError(e.message || 'Save failed')
-    }
+    // No backend reachable — keep the draft locally, never download files.
+    setSaveStatus('error')
+    setSaveError('Save backend unreachable — your changes are kept as a local draft; retry when back online')
   }
 
   function handleSave() { doSave() }

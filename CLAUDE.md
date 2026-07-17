@@ -39,8 +39,9 @@ as a numbered pin on the screenshot with a hover card. Full schema + rules: `.cl
   in `app/vite.config.js`) rewrites `app/public/uat-data.json` itself; on Vercel
   (`app/api/data.js`) it writes a new versioned blob (`uat-lens/data/<ts>.json`, last 10
   kept as history) because single-blob overwrites are not read-after-write consistent.
-  There is NO edit-overlay store and NO download flow (download remains only as a fallback
-  on plain static hosting). NEVER reintroduce an overlay keyed to row/tab ids — renaming
+  There is NO edit-overlay store and NO download flow — if the backend is unreachable,
+  Save shows an error and the draft stays in localStorage for retry.
+  NEVER reintroduce an overlay keyed to row/tab ids — renaming
   or merging tabs in the base json silently orphaned users' saved edits three times.
 - **Publishing a new /uat run** to the shared app: update `app/public/uat-data.json` +
   screenshots, `cd app && vercel deploy --prod --yes`, then seed the backend with the new
